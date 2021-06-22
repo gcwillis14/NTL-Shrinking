@@ -1,0 +1,40 @@
+install.packages("rprojroot", "raster", "dismo", "rgdal")
+# data processing
+library(tidyr)  # load before raster 
+library(rprojroot)
+
+# spatial
+library(raster)
+library(rgdal)
+library(dismo)
+
+path <- find_rstudio_root_file()
+
+#shapefile <- shapefile("DATA/CHN_adm/Prefecture_2017_Final.shp")
+shapefile <- shapefile("CHN_adm/chn_admbnda_adm2_ocha.shp")
+proj4string(shapefile) <- CRS("+init=epsg:4326")
+
+
+# Loop to read and crop data into one timeseries
+files.url <- paste0(path, "/NTL/")
+files <- list.files(path=files.url)
+
+n <- 1991
+total.y <- data.frame(matrix(NA, ncol=2, nrow=31169886))[-1]
+
+for(i in files){
+  file <- paste(files.url, i, sep = "")
+  Original <- raster(file)
+  # crop
+  Original_crop <- crop(Original, extent(shapefile), snap = "out")
+  #mask
+  Full_extent <- mask(Original_crop, shapefile, updatevalue = 0)
+  #Convert to dataframe
+  Full_extent_df <- as.data.frame(Full_extent, xy = TRUE)
+  
+  # rename NTL variable with year id
+  n <- n +1
+  names(Full_extent_df)[3] <- paste("value", n, sep="")
+  total.raster <- cbind(total.raster, Full_extent_df[,3])
+}
+write.csv(total.raster, "total_raster.csv")
