@@ -1,0 +1,43 @@
+# To create trend analysis over number of years
+
+library(raster)
+files.url <- "./Test"
+files <- list.files(path=files.url, full.names = TRUE)
+sg = stack(files)
+NTLs = brick(sg)
+rm(sg)
+
+#Annual sums 
+fun <- function(x) { 
+  NTL.ts = ts(x, start=c(2005), end=c(2018), frequency=1) #freq number per time
+}
+NTL.sum <- calc(NTLs, fun)
+
+# slope of trends
+time <- 1:nlayers(NTL.sum) 
+fun=function(x) { if (is.na(x[1])){ NA } else { m = lm(x ~ time); summary(m)$coefficients[2] }}
+NTL.slope=calc(NTL.sum, fun)
+NTL.slope=NTL.slope*14 #*by number of years
+
+writeRaster(NTL.slope, filename="Trend.tif", bylayer=TRUE,format="GTiff")
+
+# calculate p value for significance
+fun=function(x) { if (is.na(x[1])){ NA } else { m = lm(x ~ time); summary(m)$coefficients[8] }}
+p <- calc(NTL.sum, fun=fun)
+
+writeRaster(p, filename="Pvalues.tif", bylayer=TRUE,format="GTiff")
+
+#mask all values >0.05 for 95% confidence
+m = c(0, 0.05, 1, 0.05, 1, 0)
+rclmat = matrix(m, ncol=3, byrow=TRUE)
+p.mask = reclassify(p, rclmat)
+fun=function(x) { x[x<1] <- NA; return(x)}
+p.mask.NA = calc(p.mask, fun)
+
+writeRaster(p.mask.NA, filename="Pvaluesc.tif", bylayer=TRUE,format="GTiff")
+
+# mask insignificant values
+trend.sig = mask(NTL.slope, p.mask.NA)
+
+writeRaster(trend.sig, filename="mask.tif", bylayer=TRUE,format="GTiff")
+
