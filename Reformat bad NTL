@@ -1,0 +1,23 @@
+# reformat extents that didn't match
+#install.packages("rgdal")
+# data processing
+library(tidyr)  # load before raster 
+#library(rprojroot)
+
+# spatial
+library(raster)
+library(sp)
+library(dismo)
+
+ext <- extent(raster(xmn=-180.0042,xmx=180.0042,ymn=-65.00417,ymx=75.00417))
+
+NTL_2009 <- raster("NTL/Harmonized_DN_NTL_2009_calDMSP.tif")
+NTL_2010 <- raster("NTL/Harmonized_DN_NTL_2010_calDMSP.tif")
+NTL_2011 <- raster("NTL/Harmonized_DN_NTL_2011_calDMSP.tif")
+NTL_2009 <- setExtent(NTL_2009, ext)
+NTL_2010 <- setExtent(NTL_2010, ext)
+NTL_2011 <- setExtent(NTL_2011, ext)
+
+writeRaster(NTL_2009, 'NTL_2009.tif')
+writeRaster(NTL_2010, 'NTL_2010.tif')
+writeRaster(NTL_2011, 'NTL_2011.tif')
